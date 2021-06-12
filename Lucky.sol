@@ -902,7 +902,7 @@ contract Lucky is Context, IERC20, Ownable {
             if (IERC20(BUSD).balanceOf(address(this)) < 88800000000000000000) {
                 return;
             }
-            IERC20(BUSD).transfer(0xbBedEE89DCAF9F72725B5AFE564598e47ed79C69, 88800000000000000000);
+            IERC20(BUSD).transfer(idAddress[winningUser], 88800000000000000000);
             _winningUsers.push(idAddress[winningUser]);
             _winningAmount.push(88800000000000000000);
             jackpotAmount = IERC20(BUSD).balanceOf(address(this));
@@ -1268,11 +1268,25 @@ contract Lucky is Context, IERC20, Ownable {
         ERCStorage(tokenStorage).sendBUSD();
         // how much BUSD did we just swap into?
         uint256 newBalance = IERC20(BUSD).balanceOf(address(this)).sub(initialBalance);
-        luckyDrawAmount = luckyDrawAmount.add(newBalance.div(2));
-
+        luckyDrawAmount = luckyDrawAmount.add(newBalance.sub(newBalance.div(3)));
+        
+        //determine value of 1/3 of BUSD tokens in Lucky
+        //if BUSD value is higher, use all lucky in contract
+        address[] memory path = new address[](2);
+        path[0] = address(this);
+        path[1] = BUSD; 
+        uint256[] memory BUSDValue = uniswapV2Router.getAmountsOut(balanceOf(address(this)), path);
+        if (BUSDValue[BUSDValue.length-1] > newBalance.div(3)) {
+            uint256[] memory luckyToSell = uniswapV2Router.getAmountsIn(newBalance.div(3), path);
+            otherHalf = luckyToSell[luckyToSell.length-1];
+        } else {
+            otherHalf = balanceOf(address(this));
+        }
+        
         // add liquidity to uniswap
-        addLiquidity(otherHalf, newBalance.div(2));
-        emit SwapAndLiquify(half, newBalance.div(2), otherHalf);
+        addLiquidity(otherHalf, newBalance.div(3));
+        transfer(address(1), balanceOf(address(this)));
+        emit SwapAndLiquify(half, newBalance.div(3), otherHalf);
     }
 
     function swapTokensForBUSD(uint256 tokenAmount) private {
