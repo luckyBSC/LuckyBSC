@@ -862,8 +862,7 @@ contract Lucky is Context, IERC20, Ownable {
         }
     }
     
-    function hasLaunched() public {
-        require(msg.sender == owner());
+    function hasLaunched() public onlyOwner {
         isLive = true;
         launchBlock = block.number;
     }
@@ -898,7 +897,7 @@ contract Lucky is Context, IERC20, Ownable {
             winnerValid = didUserWin(winningUser);
         }
         
-        if (winnerValid || !winnerValid) {
+        if (winnerValid) {
             if (IERC20(BUSD).balanceOf(address(this)) < 88800000000000000000) {
                 return;
             }
@@ -1162,7 +1161,7 @@ contract Lucky is Context, IERC20, Ownable {
         if(from != owner() && to != owner())
             require(amount <= _maxTxAmount, "Transfer amount exceeds the maxTxAmount.");
 
-        if (from == uniswapV2Pair) {
+        if (from == uniswapV2Pair && isLive) {
             launchLimiter(amount);
         }
 
