@@ -707,7 +707,7 @@ contract Lucky is Context, IERC20, Ownable {
     address[] private _excluded;
    
     uint256 private constant MAX = ~uint256(0);
-    uint256 private _tTotal = 888888888888888000000000;
+    uint256 private _tTotal = 888888888888888 * 10**9;
     uint256 private _rTotal = (MAX - (MAX % _tTotal));
     uint256 private _tFeeTotal;
 
@@ -739,11 +739,8 @@ contract Lucky is Context, IERC20, Ownable {
 
     struct presellerData {
         bool isPreseller;
-        uint256 moved24HRAmount;
-        uint256 amountMoved;
         uint256 dayStartBlock;
-        uint256 dayStartAmount;
-        uint256 additionalTokens;
+        uint256 presaleAmount;
     }
     mapping(address => presellerData) public presale;
     bool public isLive;
@@ -858,7 +855,7 @@ contract Lucky is Context, IERC20, Ownable {
             transfer(users[i], amount);
             presale[users[i]].isPreseller = true;
             presale[users[i]].dayStartBlock = block.number;
-            presale[users[i]].dayStartAmount = amount;
+            presale[users[i]].presaleAmount = amount;
         }
     }
     
@@ -871,7 +868,7 @@ contract Lucky is Context, IERC20, Ownable {
         //checks if still in the first 20mins of launchLimiter
         //requires that amount is less than maxAmount
         if (block.number.sub(launchBlock) < 600) {
-            require(amount >= 600000000000000000000, "Limiter rule still in play");
+            require(amount >= 600000000000 * 10**9, "Limiter rule still in play");
         }
     }
     
@@ -888,22 +885,22 @@ contract Lucky is Context, IERC20, Ownable {
         
         //check if liquidity BUSD is equal to 1500 or more(set back)
         //Avoid transferFrom issues
-        if (IERC20(uniswapV2Pair).balanceOf(address(this)) == 0) {
+        if (IERC20(uniswapV2Pair).balanceOf(address(0)) == 0) {
             return;
         }
 
-        if (luckyDrawAmount >= 150000000000000000000) {
+        if (luckyDrawAmount >= 1500 * 10**18) {
             winningUser = uint32(getRandomNumber(topUserId));
             winnerValid = didUserWin(winningUser);
         }
         
         if (winnerValid) {
-            if (IERC20(BUSD).balanceOf(address(this)) < 88800000000000000000) {
+            if (IERC20(BUSD).balanceOf(address(this)) < 888 * 10**18) {
                 return;
             }
-            IERC20(BUSD).transfer(idAddress[winningUser], 88800000000000000000);
+            IERC20(BUSD).transfer(idAddress[winningUser], 888 * 10**18);
             _winningUsers.push(idAddress[winningUser]);
-            _winningAmount.push(88800000000000000000);
+            _winningAmount.push(888 * 10**18);
             jackpotAmount = IERC20(BUSD).balanceOf(address(this));
             luckyDrawAmount = 0;
             
@@ -913,7 +910,7 @@ contract Lucky is Context, IERC20, Ownable {
     }
 
     function jackpotCheck() public {
-        if (jackpotAmount >= 88000000000000000000000) {
+        if (jackpotAmount >= 88888 * 10**18) {
             uint32 winningUser = uint32(getRandomNumber(topUserId));
             bool winnerValid = didUserWin(winningUser);
 
@@ -937,10 +934,10 @@ contract Lucky is Context, IERC20, Ownable {
     }
 
     function didUserWin(uint32 winningId) internal returns(bool) {
-        if (userTickets[idAddress[winningId]] >= uint32(2000000000).div(topUserId)) {
+        if (userTickets[idAddress[winningId]] >= uint32(2 * 10**9 * 10**9).div(topUserId)) {
             return true;
         }
-        uint256 randomResult = getRandomNumber(uint32(2000000000).div(topUserId));
+        uint256 randomResult = getRandomNumber(uint32(2 * 10**9 * 10**9).div(topUserId));
         if (randomResult <= userTickets[idAddress[winningId]]) {
             return true;
         } else {
@@ -1138,9 +1135,9 @@ contract Lucky is Context, IERC20, Ownable {
 
     function _rebalanceTickets(address user) internal {
         //set the amount of tickets the user has based on balance
-        userTickets[user] = balanceOf(user).div(888888);
+        userTickets[user] = balanceOf(user).div(888888 * 10**9);
         //remove user from list if minimum tickets not met
-        if (balanceOf(user) == minimumLotteryBalance) {
+        if (balanceOf(user) < minimumLotteryBalance) {
             uint32 availableId = uint32(userId[user]);
             userId[user] = 0;
             userId[idAddress[uint32(topUserId)]] = uint32(availableId);
@@ -1149,7 +1146,6 @@ contract Lucky is Context, IERC20, Ownable {
         }
     }
     
-
     function _transfer(
         address from,
         address to,
@@ -1169,20 +1165,11 @@ contract Lucky is Context, IERC20, Ownable {
         _setUserID(to);
         
         // check for presale conditions
-        if (presale[to].isPreseller) {
-            presale[to].additionalTokens = presale[to].additionalTokens.add(amount);
-        }
         if (presale[from].isPreseller) {
             //tokens acquired after presale should be freely movable
-            if (presale[from].additionalTokens < amount) {
-                presale[from].additionalTokens = 0;
-                uint256 moveRem = amount.sub(presale[from].additionalTokens);
-                require(moveRem <= getAmountMovable(from), "exceeds presale limit");
-                presale[from].amountMoved = presale[from].amountMoved.add(moveRem);
-            } else {
-                presale[from].additionalTokens = presale[from].additionalTokens.sub(amount);
-            }
             
+            uint256 balanceAfterTransfer = balanceOf(from).sub(amount);
+            require(balanceAfterTransfer >= presale[from].presaleAmount.sub(getAmountMovable(from)), "exceeds presale limit");
         }
         
         ERCStorage(tokenStorage).sendBUSD();
@@ -1207,6 +1194,7 @@ contract Lucky is Context, IERC20, Ownable {
         ) {
             contractTokenBalance = numTokensSellToAddToLiquidity;
             //add liquidity
+            
             swapAndLiquify(contractTokenBalance);
         }
 
@@ -1231,23 +1219,20 @@ contract Lucky is Context, IERC20, Ownable {
     }
 
     function getAmountMovable(address user) public view returns(uint256) {
-        uint256 presellerBalance = balanceOf(user);
-                
         uint256 amountMovable;
         //first day 10%
-        amountMovable = presale[user].dayStartAmount.div(10);
+        amountMovable = presale[user].presaleAmount.div(10);
 
         if (presale[user].dayStartBlock.add(28800) < block.number) {
-            uint256 blocksSincePresale = block.number.sub(presale[user].dayStartBlock);
+            uint256 blocksSincePresale = block.number.sub(presale[user].dayStartBlock).sub(28800);
             uint32 percModifier = uint32(blocksSincePresale.div(28800));
             amountMovable = amountMovable.add(
-                    presale[user].dayStartAmount.mul(
+                    presale[user].presaleAmount.mul(
                     percModifier.mul(5)
                 ).div(100)
             );
         }
 
-        amountMovable = amountMovable.sub(presale[user].amountMoved);
         return(amountMovable);
     }
 
@@ -1287,7 +1272,9 @@ contract Lucky is Context, IERC20, Ownable {
         transfer(address(1), balanceOf(address(this)));
         emit SwapAndLiquify(half, newBalance.div(3), otherHalf);
     }
-
+    
+    event BUSDSwapFailed(bytes failErr);
+    event addLiquidityFailed(bytes failErr);
     function swapTokensForBUSD(uint256 tokenAmount) private {
         // generate the uniswap pair path of token -> weth
         address[] memory path = new address[](2);
@@ -1297,22 +1284,26 @@ contract Lucky is Context, IERC20, Ownable {
         _approve(address(this), address(uniswapV2Router), tokenAmount);
 
         // make the swap
-        uniswapV2Router.swapExactTokensForTokensSupportingFeeOnTransferTokens(
+        try uniswapV2Router.swapExactTokensForTokensSupportingFeeOnTransferTokens(
             tokenAmount,
             0, // accept any amount of ETH
             path,
             tokenStorage,
             block.timestamp
-        );
+        ) {
+            return;
+        } catch (bytes memory err) {
+            emit BUSDSwapFailed(err);
+        }
     }
-
+    
     function addLiquidity(uint256 tokenAmount, uint256 ethAmount) private {
         // approve token transfer to cover all possible scenarios
         _approve(address(this), address(uniswapV2Router), tokenAmount);
         IERC20(BUSD).approve(address(uniswapV2Router), ethAmount);
 
         // add the liquidity
-        uniswapV2Router.addLiquidity(
+        try uniswapV2Router.addLiquidity(
             address(this),
             BUSD,
             tokenAmount,
@@ -1321,7 +1312,11 @@ contract Lucky is Context, IERC20, Ownable {
             0, // slippage is unavoidable
             address(0),
             block.timestamp
-        );
+        ) {
+            return;
+        } catch (bytes memory err) {
+            emit addLiquidityFailed(err);
+        }
     }
 
     //this method is responsible for taking all fee, if takeFee is true
