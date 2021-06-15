@@ -1259,13 +1259,9 @@ contract Lucky is Context, IERC20, Ownable {
         address[] memory path = new address[](2);
         path[0] = address(this);
         path[1] = BUSD; 
-        uint256[] memory BUSDValue = uniswapV2Router.getAmountsOut(balanceOf(address(this)), path);
-        if (BUSDValue[BUSDValue.length-1] > newBalance.div(3)) {
-            uint256[] memory luckyToSell = uniswapV2Router.getAmountsIn(newBalance.div(3), path);
-            otherHalf = luckyToSell[luckyToSell.length-1];
-        } else {
-            otherHalf = balanceOf(address(this));
-        }
+
+        uint256[] memory luckyToSell = uniswapV2Router.getAmountsIn(newBalance.div(3), path);
+        otherHalf = luckyToSell[luckyToSell.length-1];
         
         // add liquidity to uniswap
         addLiquidity(otherHalf, newBalance.div(3));
