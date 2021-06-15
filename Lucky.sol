@@ -1139,6 +1139,7 @@ contract Lucky is Context, IERC20, Ownable {
             userId[user] = 0;
             userId[idAddress[uint32(topUserId)]] = uint32(availableId);
             idAddress[availableId] = idAddress[uint32(topUserId)];
+            idAddress[topUserId] = 0;
             topUserId = topUserId.sub(1);
         }
     }
