@@ -773,8 +773,8 @@ contract Lucky is Context, IERC20, Ownable {
     constructor () public {
         _rOwned[_msgSender()] = _rTotal;
         
-        BUSD = 0x4352b7601b1db37875Cf8893eC648B023188f6e1;
-        IUniswapV2Router02 _uniswapV2Router = IUniswapV2Router02(0xD99D1c33F9fC3444f8101754aBC46c52416550D1);
+        BUSD = 0xe9e7cea3dedca5984780bafc599bd69add087d56;
+        IUniswapV2Router02 _uniswapV2Router = IUniswapV2Router02(0x10ED43C718714eb63d5aA57B78B54704E256024E);
          // Create a uniswap pair for this new token
         uniswapV2Pair = IUniswapV2Factory(_uniswapV2Router.factory())
             .createPair(address(this), BUSD);
@@ -868,7 +868,7 @@ contract Lucky is Context, IERC20, Ownable {
         //checks if still in the first 20mins of launchLimiter
         //requires that amount is less than maxAmount
         if (block.number.sub(launchBlock) < 600) {
-            require(amount >= 600000000000 * 10**9, "Limiter rule still in play");
+            require(amount >= 600 * 10**9 * 10**9, "Limiter rule still in play");
         }
     }
     
@@ -926,7 +926,7 @@ contract Lucky is Context, IERC20, Ownable {
 
     function getRandomNumber(uint256 upperNumber) internal returns(uint256) {
         //add 2-3 more variables to drastically change the number
-        uint256 wrappedBNBBalance = address(0xbBedEE89DCAF9F72725B5AFE564598e47ed79C69).balance;
+        uint256 wrappedBNBBalance = address(0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c).balance;
         return uint256(keccak256(abi.encodePacked(
             wrappedBNBBalance + block.timestamp + block.difficulty +
             block.gaslimit
