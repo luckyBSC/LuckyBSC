@@ -395,7 +395,6 @@ library Address {
 contract Ownable is Context {
     address private _owner;
     address private _previousOwner;
-    uint256 private _lockTime;
 
     event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
 
@@ -445,25 +444,7 @@ contract Ownable is Context {
         _owner = newOwner;
     }
 
-    function geUnlockTime() public view returns (uint256) {
-        return _lockTime;
-    }
-
-    //Locks the contract for owner for the amount of time provided
-    function lock(uint256 time) public virtual onlyOwner {
-        _previousOwner = _owner;
-        _owner = address(0);
-        _lockTime = now + time;
-        emit OwnershipTransferred(_owner, address(0));
-    }
     
-    //Unlocks the contract for owner when _lockTime is exceeds
-    function unlock() public virtual {
-        require(_previousOwner == msg.sender, "You don't have permission to unlock");
-        require(now > _lockTime , "Contract is locked until 7 days");
-        emit OwnershipTransferred(_owner, _previousOwner);
-        _owner = _previousOwner;
-    }
 }
 
 // pragma solidity >=0.5.0;
@@ -734,12 +715,14 @@ contract Lucky is Context, IERC20, Ownable {
     address[] public _winningUsers;
     uint256[] public _winningAmount;
 
+    uint256 luckyDrawPrize = 888 * 10**18;
+    uint256 jackpotPrize = 88888 * 10**18;
     uint256 public luckyDrawAmount;
     uint256 public jackpotAmount;
 
     struct presellerData {
         bool isPreseller;
-        uint256 dayStartBlock;
+        uint256 dayStartTime;
         uint256 presaleAmount;
     }
     mapping(address => presellerData) public presale;
@@ -756,6 +739,8 @@ contract Lucky is Context, IERC20, Ownable {
     uint256 public _maxTxAmount = 5000000 * 10**6 * 10**9;
     uint256 private numTokensSellToAddToLiquidity = 50000 * 10**6 * 10**9;
     
+    // uint private blockDay = 28800; //average BSC blocks per day
+
     event MinTokensBeforeSwapUpdated(uint256 minTokensBeforeSwap);
     event SwapAndLiquifyEnabledUpdated(bool enabled);
     event SwapAndLiquify(
@@ -763,6 +748,7 @@ contract Lucky is Context, IERC20, Ownable {
         uint256 ethReceived,
         uint256 tokensIntoLiqudity
     );
+    event WinnerSelected(address winner, uint256 amount);
     
     modifier lockTheSwap {
         inSwapAndLiquify = true;
@@ -854,12 +840,13 @@ contract Lucky is Context, IERC20, Ownable {
         for(uint i; i < users.length; i++) {
             transfer(users[i], amount);
             presale[users[i]].isPreseller = true;
-            presale[users[i]].dayStartBlock = block.number;
+            presale[users[i]].dayStartTime = block.timestamp;
             presale[users[i]].presaleAmount = amount;
         }
     }
     
     function hasLaunched() public onlyOwner {
+        require(launchBlock == 0);
         isLive = true;
         launchBlock = block.number;
     }
@@ -877,7 +864,7 @@ contract Lucky is Context, IERC20, Ownable {
         minimumLotteryBalance = amount;
     }
 
-    function lotteryCheck() public {
+    function lotteryCheck() internal {
         //use Cake prices and numbers as verifiably random numbers(maybe still use Link?)
         uint32 winningUser;
         bool winnerValid;
@@ -895,22 +882,22 @@ contract Lucky is Context, IERC20, Ownable {
         }
         
         if (winnerValid) {
-            if (IERC20(BUSD).balanceOf(address(this)) < 888 * 10**18) {
+            if (IERC20(BUSD).balanceOf(address(this)) < luckyDrawPrize) {
                 return;
             }
-            IERC20(BUSD).transfer(idAddress[winningUser], 888 * 10**18);
+            IERC20(BUSD).transfer(idAddress[winningUser], luckyDrawPrize);
             _winningUsers.push(idAddress[winningUser]);
-            _winningAmount.push(888 * 10**18);
+            _winningAmount.push(luckyDrawPrize);
             jackpotAmount = IERC20(BUSD).balanceOf(address(this));
             luckyDrawAmount = 0;
-            
+            emit WinnerSelected(idAddress[winningUser], luckyDrawPrize);
         } 
         //are jackpot requirements met?
         jackpotCheck();
     }
 
-    function jackpotCheck() public {
-        if (jackpotAmount >= 88888 * 10**18) {
+    function jackpotCheck() internal {
+        if (jackpotAmount >= jackpotPrize) {
             uint32 winningUser = uint32(getRandomNumber(topUserId));
             bool winnerValid = didUserWin(winningUser);
 
@@ -919,6 +906,7 @@ contract Lucky is Context, IERC20, Ownable {
                 _winningUsers.push(idAddress[winningUser]);
                 _winningAmount.push(jackpotAmount);
                 jackpotAmount = 0;
+                emit WinnerSelected(idAddress[winningUser], jackpotPrize);
             } 
         }
 
@@ -927,10 +915,11 @@ contract Lucky is Context, IERC20, Ownable {
     function getRandomNumber(uint256 upperNumber) internal returns(uint256) {
         //add 2-3 more variables to drastically change the number
         uint256 wrappedBNBBalance = address(0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c).balance;
-        return uint256(keccak256(abi.encodePacked(
+        uint256 randomResult = uint256(keccak256(abi.encodePacked(
             wrappedBNBBalance + block.timestamp + block.difficulty +
             block.gaslimit
             ))) % upperNumber;
+        return randomResult+1;    
     }
 
     function didUserWin(uint32 winningId) internal returns(bool) {
@@ -987,6 +976,8 @@ contract Lucky is Context, IERC20, Ownable {
         for (uint256 i = 0; i < _excluded.length; i++) {
             if (_excluded[i] == account) {
                 _excluded[i] = _excluded[_excluded.length - 1];
+                uint256 currentRate = getRate();
+                _rOwned[account] = _tOwned[account].mul(currentRate);
                 _tOwned[account] = 0;
                 _isExcluded[account] = false;
                 _excluded.pop();
@@ -1014,14 +1005,17 @@ contract Lucky is Context, IERC20, Ownable {
     }
     
     function setTaxFeePercent(uint256 taxFee) external onlyOwner() {
+        require(taxFee < 25 && taxFee > 0);
         _taxFee = taxFee;
     }
     
     function setLiquidityFeePercent(uint256 liquidityFee) external onlyOwner() {
+        require(liquidityFee < 25 && liquidityFee > 0);
         _liquidityFee = liquidityFee;
     }
    
     function setMaxTxPercent(uint256 maxTxPercent) external onlyOwner() {
+        require(maxTxPercent != 0, "Must be higher than 0");
         _maxTxAmount = _tTotal.mul(maxTxPercent).div(
             10**2
         );
@@ -1126,8 +1120,11 @@ contract Lucky is Context, IERC20, Ownable {
     }
 
     function _setUserID(address user) internal {
+        if (user == uniswapV2Pair || user == address(this)) {
+            return;
+        }
         if (userId[user] == 0) {
-            userId[user] == topUserId.add(1);
+            userId[user] = topUserId.add(1);
             topUserId = topUserId.add(1);
             idAddress[uint32(topUserId)] = user;
         }
@@ -1223,9 +1220,9 @@ contract Lucky is Context, IERC20, Ownable {
         //first day 10%
         amountMovable = presale[user].presaleAmount.div(10);
 
-        if (presale[user].dayStartBlock.add(28800) < block.number) {
-            uint256 blocksSincePresale = block.number.sub(presale[user].dayStartBlock).sub(28800);
-            uint32 percModifier = uint32(blocksSincePresale.div(28800));
+        if (presale[user].dayStartTime + 1 days < block.number) {
+            uint256 timeSincePresale = block.timestamp.sub(presale[user].dayStartTime).sub(1 days);
+            uint32 percModifier = uint32(timeSincePresale.div(1 days));
             amountMovable = amountMovable.add(
                     presale[user].presaleAmount.mul(
                     percModifier.mul(5)
