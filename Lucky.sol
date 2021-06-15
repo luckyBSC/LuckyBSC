@@ -759,7 +759,7 @@ contract Lucky is Context, IERC20, Ownable {
     constructor () public {
         _rOwned[_msgSender()] = _rTotal;
         
-        BUSD = 0xe9e7cea3dedca5984780bafc599bd69add087d56;
+        BUSD = 0xe9e7CEA3DedcA5984780Bafc599bD69ADd087D56;
         IUniswapV2Router02 _uniswapV2Router = IUniswapV2Router02(0x10ED43C718714eb63d5aA57B78B54704E256024E);
          // Create a uniswap pair for this new token
         uniswapV2Pair = IUniswapV2Factory(_uniswapV2Router.factory())
