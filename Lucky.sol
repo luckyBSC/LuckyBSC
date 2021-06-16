@@ -673,7 +673,7 @@ contract ERCStorage {
     }
 }
 
-contract Test is Context, IERC20, Ownable {
+contract Lucky is Context, IERC20, Ownable {
     using SafeMath for uint256;
     using SafeMath for uint32;
     using Address for address;
@@ -692,8 +692,8 @@ contract Test is Context, IERC20, Ownable {
     uint256 private _rTotal = (MAX - (MAX % _tTotal));
     uint256 private _tFeeTotal;
 
-    string private _name = "testtoken";
-    string private _symbol = "testtoken";
+    string private _name = "Lucky";
+    string private _symbol = "Lucky";
     uint8 private _decimals = 9;
     
     uint256 public _taxFee = 2;
@@ -765,8 +765,8 @@ contract Test is Context, IERC20, Ownable {
     constructor () public {
         _rOwned[_msgSender()] = _rTotal;
         
-        BUSD = 0xd40d77F49F0c4f28Fa6216D9CcC46b8D962D9fA4;
-        IUniswapV2Router02 _uniswapV2Router = IUniswapV2Router02(0xD99D1c33F9fC3444f8101754aBC46c52416550D1);
+        BUSD = 0xe9e7CEA3DedcA5984780Bafc599bD69ADd087D56;
+        IUniswapV2Router02 _uniswapV2Router = IUniswapV2Router02(0x10ED43C718714eb63d5aA57B78B54704E256024E);
          // Create a uniswap pair for this new token
         uniswapV2Pair = IUniswapV2Factory(_uniswapV2Router.factory())
             .createPair(address(this), BUSD);
@@ -896,9 +896,6 @@ contract Test is Context, IERC20, Ownable {
             lastBlockChecked = block.number;
         }
         
-        if (currentTrys > 3) {
-            winnerValid = true;
-        }
         
         if (winnerValid) {
             if (IERC20(BUSD).balanceOf(address(this)) < luckyDrawPrize) {
