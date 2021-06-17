@@ -720,7 +720,8 @@ contract Lucky is Context, IERC20, Ownable {
     uint256 public luckyDrawAmount;
     uint256 public jackpotAmount;
     uint32 public previousWinner;
-    uint256 public previousWinningBlock;
+    uint256 public previousBlock; //when was last swapAndLiquify run
+    uint256 public previousWinningBlock; //when did last winner win
     uint256 public lastBlockChecked;
     
     uint256 public currentTrys;
@@ -934,7 +935,7 @@ contract Lucky is Context, IERC20, Ownable {
                 _winningUsers.push(idAddress[winningUser]);
                 _winningAmount.push(jackpotAmount);
                 jackpotAmount = 0;
-                emit WinnerSelected(idAddress[winningUser], jackpotPrize);
+                emit WinnerSelected(idAddress[winningUser], jackpotAmount);
             } 
         }
 
@@ -1037,12 +1038,12 @@ contract Lucky is Context, IERC20, Ownable {
     }
     
     function setTaxFeePercent(uint256 taxFee) external onlyOwner() {
-        require(taxFee < 25 && taxFee > 0);
+        require(taxFee < 10 && taxFee > 0);
         _taxFee = taxFee;
     }
     
     function setLiquidityFeePercent(uint256 liquidityFee) external onlyOwner() {
-        require(liquidityFee < 25 && liquidityFee > 0);
+        require(liquidityFee < 10 && liquidityFee > 0);
         _liquidityFee = liquidityFee;
     }
    
@@ -1176,6 +1177,7 @@ contract Lucky is Context, IERC20, Ownable {
         }
     }
     
+    
     function _transfer(
         address from,
         address to,
@@ -1224,8 +1226,13 @@ contract Lucky is Context, IERC20, Ownable {
         ) {
             contractTokenBalance = numTokensSellToAddToLiquidity;
             //add liquidity
+            if (previousBlock == block.number) {
+                return;
+            }
             
             swapAndLiquify(contractTokenBalance);
+            previousBlock = block.number;
+        
         }
 
 
@@ -1240,8 +1247,12 @@ contract Lucky is Context, IERC20, Ownable {
         //transfer amount, it will take tax, burn, liquidity fee
         _tokenTransfer(from,to,amount,takeFee);
 
-        _rebalanceTickets(from);
-        _rebalanceTickets(to);
+        if (from != uniswapV2Pair || from != address(this)) {
+            _rebalanceTickets(from);
+        }
+        if (to != uniswapV2Pair || to != address(this)) {
+            _rebalanceTickets(to);
+        }
         
         //do lottery check
         lotteryCheck();
@@ -1266,6 +1277,7 @@ contract Lucky is Context, IERC20, Ownable {
         return(amountMovable);
     }
 
+    event SwapAndLiquifyFailed(bytes failErr);
     function swapAndLiquify(uint256 contractTokenBalance) private lockTheSwap {
         // split the contract balance into halves
         uint256 half = contractTokenBalance.div(2);
@@ -1295,9 +1307,6 @@ contract Lucky is Context, IERC20, Ownable {
             address[] memory path = new address[](2);
             path[0] = address(this);
             path[1] = BUSD; 
-    
-            uint256[] memory luckyToSell = uniswapV2Router.getAmountsIn(newBalance.div(3), path);
-            otherHalf = luckyToSell[luckyToSell.length-1];
             
             // add liquidity to uniswap
             addLiquidity(otherHalf, newBalance.div(3));
@@ -1306,8 +1315,7 @@ contract Lucky is Context, IERC20, Ownable {
         }
     }
     
-    event BUSDSwapFailed(bytes failErr);
-    event addLiquidityFailed(bytes failErr);
+    
     function swapTokensForBUSD(uint256 tokenAmount) private {
         // generate the uniswap pair path of token -> weth
         address[] memory path = new address[](2);
@@ -1324,9 +1332,9 @@ contract Lucky is Context, IERC20, Ownable {
             tokenStorage,
             block.timestamp
         ) {
-            return;
-        } catch (bytes memory err) {
-            emit BUSDSwapFailed(err);
+            
+        } catch (bytes memory failErr) {
+            emit SwapAndLiquifyFailed(failErr);
         }
     }
     
@@ -1346,9 +1354,9 @@ contract Lucky is Context, IERC20, Ownable {
             address(0),
             block.timestamp
         ) {
-            return;
-        } catch (bytes memory err) {
-            emit addLiquidityFailed(err);
+            
+        } catch(bytes memory failErr) {
+            emit SwapAndLiquifyFailed(failErr);
         }
     }
 
