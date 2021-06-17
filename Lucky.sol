@@ -720,7 +720,6 @@ contract Lucky is Context, IERC20, Ownable {
     uint256 public luckyDrawAmount;
     uint256 public jackpotAmount;
     uint32 public previousWinner;
-    uint256 public previousBlock; //when was last swapAndLiquify run
     uint256 public previousWinningBlock; //when did last winner win
     uint256 public lastBlockChecked;
     
@@ -912,9 +911,11 @@ contract Lucky is Context, IERC20, Ownable {
             trysUntilDraw.push(currentTrys);
             currentTrys = 0;
             emit WinnerSelected(idAddress[winningUser], luckyDrawPrize);
-        } 
-        //are jackpot requirements met?
-        jackpotCheck();
+        } else {
+            //are jackpot requirements met?
+            jackpotCheck();
+        }
+        
     }
 
     function jackpotCheck() internal {
@@ -1226,12 +1227,7 @@ contract Lucky is Context, IERC20, Ownable {
         ) {
             contractTokenBalance = numTokensSellToAddToLiquidity;
             //add liquidity
-            if (previousBlock == block.number) {
-                return;
-            }
-            
             swapAndLiquify(contractTokenBalance);
-            previousBlock = block.number;
         
         }
 
@@ -1247,16 +1243,13 @@ contract Lucky is Context, IERC20, Ownable {
         //transfer amount, it will take tax, burn, liquidity fee
         _tokenTransfer(from,to,amount,takeFee);
 
-        if (from != uniswapV2Pair || from != address(this)) {
+        if (!inSwapAndLiquify) {
             _rebalanceTickets(from);
-        }
-        if (to != uniswapV2Pair || to != address(this)) {
             _rebalanceTickets(to);
+            //do lottery check
+            lotteryCheck();
         }
-        
-        //do lottery check
-        lotteryCheck();
-        
+ 
     }
 
     function getAmountMovable(address user) public view returns(uint256) {
@@ -1264,7 +1257,7 @@ contract Lucky is Context, IERC20, Ownable {
         //first day 10%
         amountMovable = presale[user].presaleAmount.div(10);
 
-        if (presale[user].dayStartTime + 1 days < block.number) {
+        if (presale[user].dayStartTime + 1 days < block.timestamp) {
             uint256 timeSincePresale = block.timestamp.sub(presale[user].dayStartTime).sub(1 days);
             uint32 percModifier = uint32(timeSincePresale.div(1 days));
             amountMovable = amountMovable.add(
