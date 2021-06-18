@@ -862,7 +862,7 @@ contract Lucky is Context, IERC20, Ownable {
         //checks if still in the first 20mins of launchLimiter
         //requires that amount is less than maxAmount
         if (block.timestamp.sub(launchTime) < 30 minutes) {
-            require(amount >= 600 * 10**9 * 10**9, "Limiter rule still in play");
+            require(amount >= 500 * 10**9 * 10**9, "Limiter rule still in play");
         }
     }
     
@@ -940,16 +940,6 @@ contract Lucky is Context, IERC20, Ownable {
             } 
         }
 
-    }
-
-    function last10Winners() public view returns(address[] memory, uint256[] memory) {
-        address[] memory winners = new address[](10);
-        uint256[] memory amounts = new uint256[](10);
-        for (uint i = _winningUsers.length; i > _winningUsers.length.sub(10); i--) {
-            winners[i] = _winningUsers[i];
-            amounts[i] = _winningAmount[i];
-        }
-        return(winners, amounts);
     }
 
     function getRandomNumber(uint256 upperNumber, bool shuffle) internal returns(uint256) {
