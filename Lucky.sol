@@ -692,8 +692,8 @@ contract Lucky is Context, IERC20, Ownable {
     uint256 private _rTotal = (MAX - (MAX % _tTotal));
     uint256 private _tFeeTotal;
 
-    string private _name = "Lucky";
-    string private _symbol = "Lucky";
+    string private _name = "LUCKY";
+    string private _symbol = "LUCKY";
     uint8 private _decimals = 9;
     
     uint256 public _taxFee = 2;
@@ -722,6 +722,8 @@ contract Lucky is Context, IERC20, Ownable {
     uint32 public previousWinner;
     uint256 public previousWinningBlock; //when did last winner win
     uint256 public lastBlockChecked;
+    uint256 public totalBUSDGiven;
+    uint256 public totalWinners;
     
     uint256 public currentTrys;
     uint256[] public trysUntilDraw;
@@ -906,6 +908,8 @@ contract Lucky is Context, IERC20, Ownable {
             IERC20(BUSD).transfer(idAddress[winningUser], luckyDrawPrize);
             _winningUsers.push(idAddress[winningUser]);
             _winningAmount.push(luckyDrawPrize);
+            totalBUSDGiven = totalBUSDGiven.add(luckyDrawPrize);
+            totalWinners = totalWinners.add(1);
             jackpotAmount = IERC20(BUSD).balanceOf(address(this));
             luckyDrawAmount = 0;
             trysUntilDraw.push(currentTrys);
@@ -935,6 +939,8 @@ contract Lucky is Context, IERC20, Ownable {
                 IERC20(BUSD).transfer(idAddress[winningUser], jackpotAmount);
                 _winningUsers.push(idAddress[winningUser]);
                 _winningAmount.push(jackpotAmount);
+                totalBUSDGiven = totalBUSDGiven.add(jackpotAmount);
+                totalWinners = totalWinners.add(1);
                 jackpotAmount = 0;
                 emit WinnerSelected(idAddress[winningUser], jackpotAmount);
             } 
