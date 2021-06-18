@@ -662,7 +662,7 @@ interface IUniswapV2Router02 is IUniswapV2Router01 {
 
 contract ERCStorage {
     address lucky;
-    address BUSD = 0xd40d77F49F0c4f28Fa6216D9CcC46b8D962D9fA4;
+    address BUSD = 0xe9e7CEA3DedcA5984780Bafc599bD69ADd087D56;
     constructor () public {
         lucky = msg.sender;
     }
