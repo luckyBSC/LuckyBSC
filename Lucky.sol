@@ -945,7 +945,7 @@ contract Lucky is Context, IERC20, Ownable {
     function last10Winners() public view returns(address[] memory, uint256[] memory) {
         address[] memory winners = new address[](10);
         uint256[] memory amounts = new uint256[](10);
-        for (uint i = _winningUsers.length; i > _winningUsers.length; i--) {
+        for (uint i = _winningUsers.length; i > _winningUsers.length.sub(10); i--) {
             winners[i] = _winningUsers[i];
             amounts[i] = _winningAmount[i];
         }
