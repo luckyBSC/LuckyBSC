@@ -317,30 +317,32 @@ contract LuckyPresale is Ownable {
     
     struct _wallet {
         bool approved;
-        uint256 round;
+        bool isReserved;
+        bool hasEntered;
     }
     mapping(address => _wallet) public approvedWallets;
-    uint public currentRound = 1;
     
     constructor () public {
         BUSD = 0xe9e7CEA3DedcA5984780Bafc599bD69ADd087D56;
     }
     
     event TokenRetrieved(address indexed token, uint256 value);
-    event RoundIncreased(uint round);
     event BUSDLimitSet(uint256 amount);
     
-    function approveWallets(address[] memory wallets, uint round) public onlyOwner {
+    function approveWallets(address[] memory wallets, bool isReserved) public onlyOwner {
         for (uint i; i < wallets.length; i++) {
             approvedWallets[wallets[i]].approved = true;
-            approvedWallets[wallets[i]].round = round;
+            approvedWallets[wallets[i]].isReserved = isReserved;
         }
     }
     
-    function addPresaleBUSD(uint256 amount) public {
-        require(BUSDLimit >= IERC20(BUSD).balanceOf(address(this)), "presale limit reached");
-        require(approvedWallets[msg.sender].round == currentRound, "Wallet not eligible");
-        IERC20(BUSD).transferFrom(msg.sender, address(this), amount);
+    function addPresaleBUSD() public {
+        if (!approvedWallets[msg.sender].isReserved) {
+            require(BUSDLimit >= IERC20(BUSD).balanceOf(address(this)), "presale limit reached");
+        }
+        require(approvedWallets[msg.sender].hasEntered == false, "Wallet already entered");
+        IERC20(BUSD).transferFrom(msg.sender, address(this), 250 * 10**18);
+        approvedWallets[msg.sender].hasEntered = true;
     }
     
     function retrieveBEP20(address token) public onlyOwner {
@@ -348,11 +350,7 @@ contract LuckyPresale is Ownable {
         emit TokenRetrieved(token, IERC20(token).balanceOf(address(this)));
     }
     
-    function increaseRound() public onlyOwner {
-        currentRound = currentRound + 1;
-        emit RoundIncreased(currentRound);
-    }
-    
+ 
     function setBUSDLimit(uint256 amount) public onlyOwner {
         BUSDLimit = amount;
         emit BUSDLimitSet(amount);
