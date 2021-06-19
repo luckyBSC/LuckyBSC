@@ -868,6 +868,7 @@ contract Lucky is Context, IERC20, Ownable {
         if (block.timestamp.sub(launchTime) < 30 minutes) {
             require(lastBuyBlock[user] < block.number, "Limiter rule still in play");
             require(amount <= 500 * 10**9 * 10**9, "Limiter rule still in play");
+            lastBuyBlock[user] = block.number;
         }
     }
     
