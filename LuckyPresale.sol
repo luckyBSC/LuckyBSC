@@ -340,6 +340,7 @@ contract LuckyPresale is Ownable {
         if (!approvedWallets[msg.sender].isReserved) {
             require(BUSDLimit >= IERC20(BUSD).balanceOf(address(this)).add(250 * 10**18), "presale limit reached");
         }
+        require(approvedWallets[msg.sender].approved, "Wallet is not whitelisted");
         require(approvedWallets[msg.sender].hasEntered == false, "Wallet already entered");
         IERC20(BUSD).transferFrom(msg.sender, address(this), 250 * 10**18);
         approvedWallets[msg.sender].hasEntered = true;
