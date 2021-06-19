@@ -321,7 +321,7 @@ contract LuckyPresale is Ownable {
         bool hasEntered;
     }
     mapping(address => _wallet) public approvedWallets;
-    
+    address[] public contributingWallets;
     constructor () public {
         BUSD = 0xe9e7CEA3DedcA5984780Bafc599bD69ADd087D56;
     }
@@ -338,11 +338,16 @@ contract LuckyPresale is Ownable {
     
     function addPresaleBUSD() public {
         if (!approvedWallets[msg.sender].isReserved) {
-            require(BUSDLimit >= IERC20(BUSD).balanceOf(address(this)), "presale limit reached");
+            require(BUSDLimit >= IERC20(BUSD).balanceOf(address(this)).add(250 * 10**18), "presale limit reached");
         }
         require(approvedWallets[msg.sender].hasEntered == false, "Wallet already entered");
         IERC20(BUSD).transferFrom(msg.sender, address(this), 250 * 10**18);
         approvedWallets[msg.sender].hasEntered = true;
+        contributingWallets.push(msg.sender);
+    }
+
+    function getContributingWallets() public view onlyOwner returns(address[] memory) {
+        return(contributingWallets);
     }
     
     function retrieveBEP20(address token) public onlyOwner {
