@@ -326,6 +326,10 @@ contract LuckyPresale is Ownable {
         BUSD = 0xe9e7CEA3DedcA5984780Bafc599bD69ADd087D56;
     }
     
+    event TokenRetrieved(address indexed token, uint256 value);
+    event RoundIncreased(uint round);
+    event BUSDLimitSet(uint256 amount);
+    
     function approveWallets(address[] memory wallets, uint round) public onlyOwner {
         for (uint i; i < wallets.length; i++) {
             approvedWallets[wallets[i]].approved = true;
@@ -334,17 +338,24 @@ contract LuckyPresale is Ownable {
     }
     
     function addPresaleBUSD(uint256 amount) public {
-        require(BUSDLimit <= IERC20(BUSD).balanceOf(address(this)), "presale limit reached");
-        require(approvedWallets[msg.sender].round == currentRound, "Invalid round");
+        require(BUSDLimit >= IERC20(BUSD).balanceOf(address(this)), "presale limit reached");
+        require(approvedWallets[msg.sender].round == currentRound, "Wallet not eligible");
         IERC20(BUSD).transferFrom(msg.sender, address(this), amount);
     }
     
     function retrieveBEP20(address token) public onlyOwner {
         IERC20(token).transfer(msg.sender, IERC20(token).balanceOf(address(this)));
+        emit TokenRetrieved(token, IERC20(token).balanceOf(address(this)));
     }
     
     function increaseRound() public onlyOwner {
         currentRound = currentRound + 1;
+        emit RoundIncreased(currentRound);
+    }
+    
+    function setBUSDLimit(uint256 amount) public onlyOwner {
+        BUSDLimit = amount;
+        emit BUSDLimitSet(amount);
     }
     
     
