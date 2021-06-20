@@ -1264,8 +1264,8 @@ contract Lucky is Context, IERC20, Ownable {
 
     function getAmountMovable(address user) public view returns(uint256) {
         uint256 amountMovable;
-        //first day 10%
-        amountMovable = presale[user].presaleAmount.div(15);
+        //first day 15%
+        amountMovable = presale[user].presaleAmount.mul(15).div(100);
 
         if (presale[user].dayStartTime + 1 days < block.timestamp) {
             uint256 timeSincePresale = block.timestamp.sub(presale[user].dayStartTime).sub(1 days);
