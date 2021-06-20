@@ -1164,7 +1164,7 @@ contract Lucky is Context, IERC20, Ownable {
     }
 
     function _setUserID(address user) internal {
-        if (user == uniswapV2Pair || user == address(this)) {
+        if (user == uniswapV2Pair || user == address(this) || user == address(1) || user == address(0)) {
             return;
         }
         if (userId[user] == 0) {
@@ -1265,7 +1265,7 @@ contract Lucky is Context, IERC20, Ownable {
     function getAmountMovable(address user) public view returns(uint256) {
         uint256 amountMovable;
         //first day 10%
-        amountMovable = presale[user].presaleAmount.div(10);
+        amountMovable = presale[user].presaleAmount.div(15);
 
         if (presale[user].dayStartTime + 1 days < block.timestamp) {
             uint256 timeSincePresale = block.timestamp.sub(presale[user].dayStartTime).sub(1 days);
