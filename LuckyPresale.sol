@@ -314,6 +314,7 @@ contract LuckyPresale is Ownable {
     
     address public BUSD;
     uint256 public BUSDLimit;
+    uint256 public presaleAmount = 250 * 10**18;
     
     struct _wallet {
         bool approved;
@@ -321,7 +322,7 @@ contract LuckyPresale is Ownable {
         bool hasEntered;
     }
     mapping(address => _wallet) public approvedWallets;
-    address[] public contributingWallets;
+    address[] private contributingWallets;
     constructor () public {
         BUSD = 0xe9e7CEA3DedcA5984780Bafc599bD69ADd087D56;
     }
@@ -338,11 +339,11 @@ contract LuckyPresale is Ownable {
     
     function addPresaleBUSD() public {
         if (!approvedWallets[msg.sender].isReserved) {
-            require(BUSDLimit >= IERC20(BUSD).balanceOf(address(this)).add(250 * 10**18), "presale limit reached");
+            require(BUSDLimit >= IERC20(BUSD).balanceOf(address(this)).add(presaleAmount), "presale limit reached");
         }
         require(approvedWallets[msg.sender].approved, "Wallet is not whitelisted");
         require(approvedWallets[msg.sender].hasEntered == false, "Wallet already entered");
-        IERC20(BUSD).transferFrom(msg.sender, address(this), 250 * 10**18);
+        IERC20(BUSD).transferFrom(msg.sender, address(this), presaleAmount);
         approvedWallets[msg.sender].hasEntered = true;
         contributingWallets.push(msg.sender);
     }
