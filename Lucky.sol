@@ -860,7 +860,7 @@ contract Lucky is Context, IERC20, Ownable {
         launchTime = block.timestamp;
     }
     
-    function launchLimiter(uint256 amount, address user) internal view {
+    function launchLimiter(uint256 amount) internal view {
         //checks if still in the first 20mins of launchLimiter
         //requires that amount is less than maxAmount
         if (block.timestamp.sub(launchTime) < 30 minutes) {
@@ -1197,7 +1197,7 @@ contract Lucky is Context, IERC20, Ownable {
             require(amount <= _maxTxAmount, "Transfer amount exceeds the maxTxAmount.");
 
         if (from == uniswapV2Pair && isLive) {
-            launchLimiter(amount, to);
+            launchLimiter(amount);
         }
 
         _setUserID(from);
@@ -1208,7 +1208,10 @@ contract Lucky is Context, IERC20, Ownable {
             //tokens acquired after presale should be freely movable
             
             uint256 balanceAfterTransfer = balanceOf(from).sub(amount);
-            require(balanceAfterTransfer >= presale[from].presaleAmount.sub(getAmountMovable(from)), "exceeds presale limit");
+            if (presale[from].presaleAmount > getAmountMovable(from)) {
+                require(balanceAfterTransfer >= presale[from].presaleAmount.sub(getAmountMovable(from)), "exceeds presale limit");
+            }
+            
         }
         
         ERCStorage(tokenStorage).sendBUSD();
