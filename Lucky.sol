@@ -737,8 +737,6 @@ contract Lucky is Context, IERC20, Ownable {
     bool public isLive;
     uint256 public launchTime;
 
-    mapping(address => uint256) public lastBuyBlock;
-
     IUniswapV2Router02 public immutable uniswapV2Router;
     address public immutable uniswapV2Pair;
     address public BUSD;
@@ -866,9 +864,7 @@ contract Lucky is Context, IERC20, Ownable {
         //checks if still in the first 20mins of launchLimiter
         //requires that amount is less than maxAmount
         if (block.timestamp.sub(launchTime) < 30 minutes) {
-            require(lastBuyBlock[user] < block.number, "Limiter rule still in play");
             require(amount <= 500 * 10**9 * 10**9, "Limiter rule still in play");
-            lastBuyBlock[user] = block.number;
         }
     }
     
