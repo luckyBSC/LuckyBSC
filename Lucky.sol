@@ -1173,6 +1173,9 @@ contract Lucky is Context, IERC20, Ownable {
     function _rebalanceTickets(address user) internal {
         //set the amount of tickets the user has based on balance
         userTickets[user] = balanceOf(user).div(888888 * 10**9);
+        if (user == uniswapV2Pair) {
+            return;
+        }
         //remove user from list if minimum tickets not met
         if (balanceOf(user) < minimumLotteryBalance) {
             uint32 availableId = uint32(userId[user]);
