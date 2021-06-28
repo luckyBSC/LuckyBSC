@@ -661,19 +661,19 @@ interface IUniswapV2Router02 is IUniswapV2Router01 {
 }
 
 contract ERCStorage {
-    address lucky;
+    address eightyEight;
     address BUSD = 0xe9e7CEA3DedcA5984780Bafc599bD69ADd087D56;
     constructor () public {
-        lucky = msg.sender;
+        eightyEight = msg.sender;
     }
     
     function sendBUSD() public {
-        require(msg.sender == lucky);
-        IERC20(BUSD).transfer(lucky, IERC20(BUSD).balanceOf(address(this)));
+        require(msg.sender == eightyEight);
+        IERC20(BUSD).transfer(eightyEight, IERC20(BUSD).balanceOf(address(this)));
     }
 }
 
-contract Lucky is Context, IERC20, Ownable {
+contract 88s is Context, IERC20, Ownable {
     using SafeMath for uint256;
     using SafeMath for uint32;
     using Address for address;
@@ -688,12 +688,12 @@ contract Lucky is Context, IERC20, Ownable {
     address[] private _excluded;
    
     uint256 private constant MAX = ~uint256(0);
-    uint256 private _tTotal = 888888888888888 * 10**9;
+    uint256 private _tTotal = 88000000000000 * 10**9;
     uint256 private _rTotal = (MAX - (MAX % _tTotal));
     uint256 private _tFeeTotal;
 
-    string private _name = "LUCKY";
-    string private _symbol = "LUCKY";
+    string private _name = "88s";
+    string private _symbol = "88s";
     uint8 private _decimals = 9;
     
     uint256 public _taxFee = 2;
@@ -715,8 +715,8 @@ contract Lucky is Context, IERC20, Ownable {
     address[] public _winningUsers;
     uint256[] public _winningAmount;
     
-    uint256 luckyDrawPrize = 888 * 10**18;
-    uint256 jackpotPrize = 88888 * 10**18;
+    uint256 luckyDrawPrize = 21 * 10**18;
+    uint256 jackpotPrize = 210 * 10**18;
     uint256 public luckyDrawAmount;
     uint256 public jackpotAmount;
     uint32 public previousWinner;
@@ -736,10 +736,12 @@ contract Lucky is Context, IERC20, Ownable {
     mapping(address => presellerData) public presale;
     bool public isLive;
     uint256 public launchTime;
+    mapping(address => uint256) public lastBuyTime;
 
     IUniswapV2Router02 public immutable uniswapV2Router;
     address public immutable uniswapV2Pair;
     address public BUSD;
+    address public lucky;
     
     bool inSwapAndLiquify;
     bool public swapAndLiquifyEnabled = true;
@@ -764,9 +766,30 @@ contract Lucky is Context, IERC20, Ownable {
         inSwapAndLiquify = false;
     }
     
+    struct stakingInfo {
+        uint256 blockStaked;
+        uint256 luckyStaked;
+        uint256 tokensEarned;
+    }
+    mapping(address => stakingInfo) public stakeMap;
+    uint256 difficulty;
+    
+    modifier calculateLucky {
+        if (block.number > stakeMap[msg.sender].blockStaked) {
+            uint256 newBlocks = stakeMap[msg.sender].blockStaked.sub(block.number);
+            uint256 stakedAmount = stakeMap[msg.sender].luckyStaked;
+            if (stakedAmount > 0) {
+                uint256 new88 = stakedAmount.mul(newBlocks).div(difficulty);
+                stakeMap[msg.sender].tokensEarned = stakeMap[msg.sender].tokensEarned.add(new88);
+            }
+            stakeMap[msg.sender].blockStaked = block.number;
+        }
+        _;
+    }
+    
     constructor () public {
         _rOwned[_msgSender()] = _rTotal;
-        
+        lucky = 0xe0d02C755cf7Bb93772b8874b4df672A5e88041F;
         BUSD = 0xe9e7CEA3DedcA5984780Bafc599bD69ADd087D56;
         IUniswapV2Router02 _uniswapV2Router = IUniswapV2Router02(0x10ED43C718714eb63d5aA57B78B54704E256024E);
          // Create a uniswap pair for this new token
@@ -842,29 +865,43 @@ contract Lucky is Context, IERC20, Ownable {
     function totalFees() public view returns (uint256) {
         return _tFeeTotal;
     }
-
-    function sendPresaleTokens(address[] memory users, uint256 amount) public {
-        require(msg.sender == owner());
-        for(uint i; i < users.length; i++) {
-            transfer(users[i], amount);
-            presale[users[i]].isPreseller = true;
-            presale[users[i]].dayStartTime = block.timestamp;
-            presale[users[i]].presaleAmount = amount;
+    
+    function stakeLucky(uint256 amount) public calculateLucky {
+        IERC20(lucky).transferFrom(msg.sender, address(this), amount);
+        stakeMap[msg.sender].luckyStaked = stakeMap[msg.sender].luckyStaked.add(amount);
+    }
+    
+    function unstakeLucky() public {
+        IERC20(lucky).transferFrom(address(this), msg.sender, stakeMap[msg.sender].luckyStaked);
+        _tokenTransfer(address(this), msg.sender, stakeMap[msg.sender].tokensEarned, true);
+    }
+    
+    function viewTokensEarned() public view returns(uint256) {
+        uint256 tokensEarned = stakeMap[msg.sender].tokensEarned;
+        if (block.number > stakeMap[msg.sender].blockStaked) {
+            uint256 newBlocks = stakeMap[msg.sender].blockStaked.sub(block.number);
+            uint256 stakedAmount = stakeMap[msg.sender].luckyStaked;
+            if (stakedAmount > 0) {
+                uint256 new88 = stakedAmount.mul(newBlocks).div(difficulty);
+                tokensEarned = tokensEarned.add(new88);
+            }
+            
         }
+        return tokensEarned;
     }
+    
+    function setDifficulty(uint256 _difficulty) public onlyOwner {
+        difficulty = _difficulty;
+    }
+    
 
-    
-    function hasLaunched() public onlyOwner {
-        require(launchTime == 0);
-        isLive = true;
-        launchTime = block.timestamp;
-    }
-    
-    function launchLimiter(uint256 amount) internal view {
+    function launchLimiter(uint256 amount, address user) internal {
         //checks if still in the first 20mins of launchLimiter
         //requires that amount is less than maxAmount
-        if (block.timestamp.sub(launchTime) < 30 minutes) {
-            require(amount <= 500 * 10**9 * 10**9, "Limiter rule still in play");
+        require(block.timestamp > lastBuyTime[user].add(1 minutes), "10 min cooldown between buys on day 1");
+        if (block.timestamp.sub(launchTime) < 1 days) {
+            require(amount <= 500 * 10**9 * 10**9, "Limiter rule still in play. 500b or less");
+            lastBuyTime[user] = block.timestamp;
         }
     }
     
@@ -882,13 +919,13 @@ contract Lucky is Context, IERC20, Ownable {
             return;
         }
         
-        //check if liquidity BUSD is equal to 1500 or more(set back)
+        //check if liquidity BUSD is equal to 88 or more(set back)
         //Avoid transferFrom issues
         if (IERC20(uniswapV2Pair).balanceOf(address(0)) == 0) {
             return;
         }
 
-        if (luckyDrawAmount >= 1500 * 10**18) {
+        if (luckyDrawAmount >= 88 * 10**18) {
             winningUser = uint32(getRandomNumber(topUserId, false));
             if (winningUser == previousWinner) {
                 winningUser = uint32(getRandomNumber(topUserId, true));
@@ -910,14 +947,14 @@ contract Lucky is Context, IERC20, Ownable {
             _winningAmount.push(luckyDrawPrize);
             totalBUSDGiven = totalBUSDGiven.add(luckyDrawPrize);
             totalWinners = totalWinners.add(1);
-            jackpotAmount = IERC20(BUSD).balanceOf(address(this));
-            luckyDrawAmount = 0;
+            // jackpotAmount = IERC20(BUSD).balanceOf(address(this));
+            luckyDrawAmount = IERC20(BUSD).balanceOf(address(this));
             trysUntilDraw.push(currentTrys);
             currentTrys = 0;
             emit WinnerSelected(idAddress[winningUser], luckyDrawPrize);
         } else {
             //are jackpot requirements met?
-            jackpotCheck();
+            // jackpotCheck();
         }
         
     }
@@ -930,19 +967,24 @@ contract Lucky is Context, IERC20, Ownable {
             uint32 winningUser = uint32(getRandomNumber(topUserId, false));
             if (winningUser == previousWinner) {
                 winningUser = uint32(getRandomNumber(topUserId, true));
+                currentTrys = currentTrys.add(1);
+                lastBlockChecked = block.number;
             }
             bool winnerValid = didUserWin(winningUser);
 
             if (winnerValid) {
                 previousWinner = winningUser;
                 previousWinningBlock = block.number;
-                IERC20(BUSD).transfer(idAddress[winningUser], jackpotAmount);
+                IERC20(BUSD).transfer(idAddress[winningUser], jackpotPrize);
                 _winningUsers.push(idAddress[winningUser]);
                 _winningAmount.push(jackpotAmount);
-                totalBUSDGiven = totalBUSDGiven.add(jackpotAmount);
+                totalBUSDGiven = totalBUSDGiven.add(jackpotPrize);
                 totalWinners = totalWinners.add(1);
+                luckyDrawAmount = luckyDrawAmount.add(jackpotAmount.sub(jackpotPrize));
                 jackpotAmount = 0;
-                emit WinnerSelected(idAddress[winningUser], jackpotAmount);
+                trysUntilDraw.push(currentTrys);
+                currentTrys = 0;
+                emit WinnerSelected(idAddress[winningUser], jackpotPrize);
             } 
         }
 
@@ -1172,7 +1214,7 @@ contract Lucky is Context, IERC20, Ownable {
 
     function _rebalanceTickets(address user) internal {
         //set the amount of tickets the user has based on balance
-        userTickets[user] = balanceOf(user).div(88888 * 10**9);
+        userTickets[user] = balanceOf(user).div(210000 * 10**9);
         if (user == uniswapV2Pair || user == address(this) || user == address(1) || user == address(0)) {
             return;
         }
@@ -1198,9 +1240,16 @@ contract Lucky is Context, IERC20, Ownable {
         require(amount > 0, "Transfer amount must be greater than zero");
         if(from != owner() && to != owner())
             require(amount <= _maxTxAmount, "Transfer amount exceeds the maxTxAmount.");
-
+        
+        rebalanceFees();
+        
+        if (!isLive && IERC20(BUSD).balanceOf(uniswapV2Pair) > 0) {
+            isLive = true;
+            launchTime = block.timestamp;
+        }
+        
         if (from == uniswapV2Pair && isLive) {
-            launchLimiter(amount);
+            launchLimiter(amount, to);
         }
 
         _setUserID(from);
@@ -1230,14 +1279,13 @@ contract Lucky is Context, IERC20, Ownable {
             contractTokenBalance = _maxTxAmount;
         }
         
-        bool overMinTokenBalance = contractTokenBalance >= numTokensSellToAddToLiquidity;
+        // bool overMinTokenBalance = contractTokenBalance >= numTokensSellToAddToLiquidity;
         if (
-            overMinTokenBalance &&
             !inSwapAndLiquify &&
             from != uniswapV2Pair &&
             swapAndLiquifyEnabled
         ) {
-            contractTokenBalance = numTokensSellToAddToLiquidity;
+            contractTokenBalance = balanceOf(address(this));
             //add liquidity
             swapAndLiquify(contractTokenBalance);
         
@@ -1295,7 +1343,7 @@ contract Lucky is Context, IERC20, Ownable {
         // has been manually sent to the contract
         uint256 initialBalance = IERC20(BUSD).balanceOf(address(this));
         // swap tokens for BUSD
-        swapTokensForBUSD(half); // <- this breaks the BUSD -> HATE swap when swap+liquify is triggered
+        swapTokensForBUSD(contractTokenBalance); // <- this breaks the BUSD -> HATE swap when swap+liquify is triggered
         ERCStorage(tokenStorage).sendBUSD();
         
         // how much BUSD did we just swap into?
@@ -1305,7 +1353,7 @@ contract Lucky is Context, IERC20, Ownable {
         
         uint256 newBalance = IERC20(BUSD).balanceOf(address(this)).sub(initialBalance);
         if (newBalance > 2) {
-            luckyDrawAmount = luckyDrawAmount.add(newBalance.sub(newBalance.div(3)));
+            luckyDrawAmount = luckyDrawAmount.add(newBalance);
         
             //determine value of 1/3 of BUSD tokens in Lucky
             //if BUSD value is higher, use all lucky in contract
@@ -1314,9 +1362,9 @@ contract Lucky is Context, IERC20, Ownable {
             path[1] = BUSD; 
             
             // add liquidity to uniswap
-            addLiquidity(otherHalf, newBalance.div(3));
+            // addLiquidity(otherHalf, newBalance.div(3));
             // transfer(address(1), balanceOf(address(this)));
-            _tokenTransfer(address(this), address(1), balanceOf(address(this)), false);
+            // _tokenTransfer(address(this), address(1), balanceOf(address(this)), false);
             emit SwapAndLiquify(half, newBalance.div(3), otherHalf);
         }
     }
