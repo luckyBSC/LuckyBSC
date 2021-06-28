@@ -715,8 +715,8 @@ contract 88s is Context, IERC20, Ownable {
     address[] public _winningUsers;
     uint256[] public _winningAmount;
     
-    uint256 luckyDrawPrize = 21 * 10**18;
-    uint256 jackpotPrize = 210 * 10**18;
+    uint256 luckyDrawPrize = 88 * 10**18;
+    uint256 jackpotPrize = 888 * 10**18;
     uint256 public luckyDrawAmount;
     uint256 public jackpotAmount;
     uint32 public previousWinner;
