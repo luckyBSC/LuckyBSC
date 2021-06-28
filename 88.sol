@@ -696,10 +696,10 @@ contract 88s is Context, IERC20, Ownable {
     string private _symbol = "88s";
     uint8 private _decimals = 9;
     
-    uint256 public _taxFee = 2;
+    uint256 public _taxFee = 0;
     uint256 private _previousTaxFee = _taxFee;
     
-    uint256 public _liquidityFee = 6;
+    uint256 public _liquidityFee = 8;
     uint256 private _previousLiquidityFee = _liquidityFee;
     
     address public tokenStorage;
