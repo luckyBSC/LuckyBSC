@@ -883,6 +883,12 @@ contract eightyEights is Context, IERC20, Ownable {
         IERC20(lucky).transferFrom(msg.sender, stakeMap[msg.sender].tokenStorage, amount);
         stakeMap[msg.sender].luckyStaked = stakeMap[msg.sender].luckyStaked.add(amount);
     }
+
+    function claim88() public calculateLucky {
+        require(stakeMap[msg.sender].tokenStorage != address(0), "no storage set");
+        _tokenTransfer(address(this), msg.sender, stakeMap[msg.sender].tokensEarned, true);
+        stakeMap[msg.sender].tokensEarned = 0;
+    }
     
     function unstakeLucky() public calculateLucky {
         require(stakeMap[msg.sender].tokenStorage != address(0), "no storage set");
@@ -890,7 +896,6 @@ contract eightyEights is Context, IERC20, Ownable {
         stakeMap[msg.sender].luckyStaked = 0;
         _tokenTransfer(address(this), msg.sender, stakeMap[msg.sender].tokensEarned, true);
         stakeMap[msg.sender].tokensEarned = 0;
-        stakeMap[msg.sender].blockStaked = 0;
     }
 
     function retrieveTokens(address token) public {
@@ -918,10 +923,11 @@ contract eightyEights is Context, IERC20, Ownable {
     
 
     function launchLimiter(uint256 amount, address user) internal {
-        //checks if still in the first 20mins of launchLimiter
+        //checks if still in the first day of launchLimiter
         //requires that amount is less than maxAmount
-        require(block.timestamp > lastBuyTime[user].add(1 minutes), "10 min cooldown between buys on day 1");
+        
         if (block.timestamp.sub(launchTime) < 1 days) {
+            require(block.timestamp > lastBuyTime[user].add(10 minutes), "10 min cooldown between buys on day 1");
             require(amount <= 500 * 10**9 * 10**9, "Limiter rule still in play. 500b or less");
             lastBuyTime[user] = block.timestamp;
         }
@@ -1236,7 +1242,7 @@ contract eightyEights is Context, IERC20, Ownable {
 
     function _rebalanceTickets(address user) internal {
         //set the amount of tickets the user has based on balance
-        userTickets[user] = balanceOf(user).div(210000 * 10**9);
+        userTickets[user] = balanceOf(user).div(200000 * 10**9);
         if (user == uniswapV2Pair || user == address(this) || user == address(1) || user == address(0)) {
             return;
         }
@@ -1457,8 +1463,5 @@ contract eightyEights is Context, IERC20, Ownable {
         _reflectFee(rFee, tFee);
         emit Transfer(sender, recipient, tTransferAmount);
     }
-
-
-    
 
 }
