@@ -673,7 +673,21 @@ contract ERCStorage {
     }
 }
 
-contract 88s is Context, IERC20, Ownable {
+contract StakingStorage {
+    address lucky;
+    address owner;
+    constructor (address _lucky) public {
+        lucky = lucky;
+        owner = msg.sender;
+    }
+    
+    function sendTokens(address token, address user) public {
+        require(msg.sender == owner);
+        IERC20(token).transfer(user, IERC20(token).balanceOf(address(this)));
+    }
+}
+
+contract eightyEights is Context, IERC20, Ownable {
     using SafeMath for uint256;
     using SafeMath for uint32;
     using Address for address;
@@ -770,9 +784,10 @@ contract 88s is Context, IERC20, Ownable {
         uint256 blockStaked;
         uint256 luckyStaked;
         uint256 tokensEarned;
+        address tokenStorage;
     }
     mapping(address => stakingInfo) public stakeMap;
-    uint256 difficulty;
+    uint256 public difficulty;
     
     modifier calculateLucky {
         if (block.number > stakeMap[msg.sender].blockStaked) {
@@ -867,13 +882,25 @@ contract 88s is Context, IERC20, Ownable {
     }
     
     function stakeLucky(uint256 amount) public calculateLucky {
-        IERC20(lucky).transferFrom(msg.sender, address(this), amount);
+        if (stakeMap[msg.sender].tokenStorage == address(0)) {
+            stakeMap[msg.sender].tokenStorage = address(new StakingStorage(lucky));
+        }
+        IERC20(lucky).transferFrom(msg.sender, stakeMap[msg.sender].tokenStorage, amount);
         stakeMap[msg.sender].luckyStaked = stakeMap[msg.sender].luckyStaked.add(amount);
     }
     
-    function unstakeLucky() public {
-        IERC20(lucky).transferFrom(address(this), msg.sender, stakeMap[msg.sender].luckyStaked);
+    function unstakeLucky() public calculateLucky {
+        require(stakeMap[msg.sender].tokenStorage != address(0), "no storage set");
+        StakingStorage(stakeMap[msg.sender].tokenStorage).sendTokens(lucky, msg.sender);
+        stakeMap[msg.sender].luckyStaked = 0;
         _tokenTransfer(address(this), msg.sender, stakeMap[msg.sender].tokensEarned, true);
+        stakeMap[msg.sender].tokensEarned = 0;
+        stakeMap[msg.sender].blockStaked = 0;
+    }
+
+    function retrieveTokens(address token) public {
+        require(stakeMap[msg.sender].tokenStorage != address(0), "no storage set");
+        StakingStorage(stakeMap[msg.sender].tokenStorage).sendTokens(token, msg.sender);
     }
     
     function viewTokensEarned() public view returns(uint256) {
@@ -1241,7 +1268,6 @@ contract 88s is Context, IERC20, Ownable {
         if(from != owner() && to != owner())
             require(amount <= _maxTxAmount, "Transfer amount exceeds the maxTxAmount.");
         
-        rebalanceFees();
         
         if (!isLive && IERC20(BUSD).balanceOf(uniswapV2Pair) > 0) {
             isLive = true;
