@@ -677,7 +677,7 @@ contract StakingStorage {
     address lucky;
     address owner;
     constructor (address _lucky) public {
-        lucky = lucky;
+        lucky = _lucky;
         owner = msg.sender;
     }
     
@@ -742,12 +742,7 @@ contract eightyEights is Context, IERC20, Ownable {
     uint256 public currentTrys;
     uint256[] public trysUntilDraw;
 
-    struct presellerData {
-        bool isPreseller;
-        uint256 dayStartTime;
-        uint256 presaleAmount;
-    }
-    mapping(address => presellerData) public presale;
+
     bool public isLive;
     uint256 public launchTime;
     mapping(address => uint256) public lastBuyTime;
@@ -787,11 +782,11 @@ contract eightyEights is Context, IERC20, Ownable {
         address tokenStorage;
     }
     mapping(address => stakingInfo) public stakeMap;
-    uint256 public difficulty;
+    uint256 public difficulty = 300000000;
     
     modifier calculateLucky {
         if (block.number > stakeMap[msg.sender].blockStaked) {
-            uint256 newBlocks = stakeMap[msg.sender].blockStaked.sub(block.number);
+            uint256 newBlocks = block.number.sub(stakeMap[msg.sender].blockStaked);
             uint256 stakedAmount = stakeMap[msg.sender].luckyStaked;
             if (stakedAmount > 0) {
                 uint256 new88 = stakedAmount.mul(newBlocks).div(difficulty);
@@ -906,7 +901,7 @@ contract eightyEights is Context, IERC20, Ownable {
     function viewTokensEarned() public view returns(uint256) {
         uint256 tokensEarned = stakeMap[msg.sender].tokensEarned;
         if (block.number > stakeMap[msg.sender].blockStaked) {
-            uint256 newBlocks = stakeMap[msg.sender].blockStaked.sub(block.number);
+            uint256 newBlocks = block.number.sub(stakeMap[msg.sender].blockStaked);
             uint256 stakedAmount = stakeMap[msg.sender].luckyStaked;
             if (stakedAmount > 0) {
                 uint256 new88 = stakedAmount.mul(newBlocks).div(difficulty);
@@ -1281,16 +1276,6 @@ contract eightyEights is Context, IERC20, Ownable {
         _setUserID(from);
         _setUserID(to);
         
-        // check for presale conditions
-        if (presale[from].isPreseller) {
-            //tokens acquired after presale should be freely movable
-            
-            uint256 balanceAfterTransfer = balanceOf(from).sub(amount);
-            if (presale[from].presaleAmount > getAmountMovable(from)) {
-                require(balanceAfterTransfer >= presale[from].presaleAmount.sub(getAmountMovable(from)), "exceeds presale limit");
-            }
-            
-        }
         
         ERCStorage(tokenStorage).sendBUSD();
 
@@ -1338,23 +1323,6 @@ contract eightyEights is Context, IERC20, Ownable {
  
     }
 
-    function getAmountMovable(address user) public view returns(uint256) {
-        uint256 amountMovable;
-        //first day 15%
-        amountMovable = presale[user].presaleAmount.mul(15).div(100);
-
-        if (presale[user].dayStartTime + 1 days < block.timestamp) {
-            uint256 timeSincePresale = block.timestamp.sub(presale[user].dayStartTime).sub(1 days);
-            uint32 percModifier = uint32(timeSincePresale.div(1 days));
-            amountMovable = amountMovable.add(
-                    presale[user].presaleAmount.mul(
-                    percModifier.mul(5)
-                ).div(100)
-            );
-        }
-
-        return(amountMovable);
-    }
 
     event SwapAndLiquifyFailed(bytes failErr);
     function swapAndLiquify(uint256 contractTokenBalance) private lockTheSwap {
