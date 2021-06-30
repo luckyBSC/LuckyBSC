@@ -818,6 +818,7 @@ contract eightyEights is Context, IERC20, Ownable {
         //exclude owner and this contract from fee
         _isExcludedFromFee[owner()] = true;
         _isExcludedFromFee[address(this)] = true;
+        _isExcludedFromFee[tokenStorage] = true;
         
         emit Transfer(address(0), _msgSender(), _tTotal);
     }
@@ -1041,7 +1042,7 @@ contract eightyEights is Context, IERC20, Ownable {
         if (userTickets[idAddress[winningId]] >= uint32(2 * 10**9 * 10**9).div(topUserId)) {
             return true;
         }
-        uint256 randomResult = getRandomNumber(uint32(2 * 10**9 * 10**9).div(topUserId), false);
+        uint256 randomResult = getRandomNumber(uint32(2 * 10**8 * 10**9).div(topUserId), false);
         if (randomResult <= userTickets[idAddress[winningId]]) {
             return true;
         } else {
@@ -1247,7 +1248,7 @@ contract eightyEights is Context, IERC20, Ownable {
 
     function _rebalanceTickets(address user) internal {
         //set the amount of tickets the user has based on balance
-        userTickets[user] = balanceOf(user).div(8888 * 10**9);
+        userTickets[user] = balanceOf(user).div(88888 * 10**9);
         if (user == uniswapV2Pair || user == address(this) || user == address(1) || user == address(0)) {
             return;
         }
@@ -1280,9 +1281,9 @@ contract eightyEights is Context, IERC20, Ownable {
             launchTime = block.timestamp;
         }
         
-        if (from == uniswapV2Pair && isLive) {
-            launchLimiter(amount, to);
-        }
+        // if (from == uniswapV2Pair && isLive) {
+        //     launchLimiter(amount, to);
+        // }
 
         _setUserID(from);
         _setUserID(to);
