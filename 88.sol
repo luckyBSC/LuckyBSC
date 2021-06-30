@@ -671,6 +671,11 @@ contract ERCStorage {
         require(msg.sender == eightyEight);
         IERC20(BUSD).transfer(eightyEight, IERC20(BUSD).balanceOf(address(this)));
     }
+
+    function send88(uint256 amount) public {
+        require(msg.sender == eightyEight);
+        IERC20(eightyEight).transfer(eightyEight, amount);
+    }
 }
 
 contract StakingStorage {
@@ -782,7 +787,7 @@ contract eightyEights is Context, IERC20, Ownable {
         address tokenStorage;
     }
     mapping(address => stakingInfo) public stakeMap;
-    uint256 public difficulty = 300000000;
+    uint256 public difficulty = 10000000;
     
     modifier calculateLucky {
         if (block.number > stakeMap[msg.sender].blockStaked) {
@@ -886,7 +891,7 @@ contract eightyEights is Context, IERC20, Ownable {
 
     function claim88() public calculateLucky {
         require(stakeMap[msg.sender].tokenStorage != address(0), "no storage set");
-        _tokenTransfer(address(this), msg.sender, stakeMap[msg.sender].tokensEarned, true);
+        ERCStorage(tokenStorage).send88(stakeMap[msg.sender].tokensEarned);
         stakeMap[msg.sender].tokensEarned = 0;
     }
     
@@ -894,7 +899,7 @@ contract eightyEights is Context, IERC20, Ownable {
         require(stakeMap[msg.sender].tokenStorage != address(0), "no storage set");
         StakingStorage(stakeMap[msg.sender].tokenStorage).sendTokens(lucky, msg.sender);
         stakeMap[msg.sender].luckyStaked = 0;
-        _tokenTransfer(address(this), msg.sender, stakeMap[msg.sender].tokensEarned, true);
+        ERCStorage(tokenStorage).send88(stakeMap[msg.sender].tokensEarned);
         stakeMap[msg.sender].tokensEarned = 0;
     }
 
@@ -903,11 +908,11 @@ contract eightyEights is Context, IERC20, Ownable {
         StakingStorage(stakeMap[msg.sender].tokenStorage).sendTokens(token, msg.sender);
     }
     
-    function viewTokensEarned() public view returns(uint256) {
-        uint256 tokensEarned = stakeMap[msg.sender].tokensEarned;
-        if (block.number > stakeMap[msg.sender].blockStaked) {
-            uint256 newBlocks = block.number.sub(stakeMap[msg.sender].blockStaked);
-            uint256 stakedAmount = stakeMap[msg.sender].luckyStaked;
+    function viewTokensEarned(address user) public view returns(uint256) {
+        uint256 tokensEarned = stakeMap[user].tokensEarned;
+        if (block.number > stakeMap[user].blockStaked) {
+            uint256 newBlocks = block.number.sub(stakeMap[user].blockStaked);
+            uint256 stakedAmount = stakeMap[user].luckyStaked;
             if (stakedAmount > 0) {
                 uint256 new88 = stakedAmount.mul(newBlocks).div(difficulty);
                 tokensEarned = tokensEarned.add(new88);
@@ -1242,7 +1247,7 @@ contract eightyEights is Context, IERC20, Ownable {
 
     function _rebalanceTickets(address user) internal {
         //set the amount of tickets the user has based on balance
-        userTickets[user] = balanceOf(user).div(200000 * 10**9);
+        userTickets[user] = balanceOf(user).div(8888 * 10**9);
         if (user == uniswapV2Pair || user == address(this) || user == address(1) || user == address(0)) {
             return;
         }
@@ -1283,7 +1288,7 @@ contract eightyEights is Context, IERC20, Ownable {
         _setUserID(to);
         
         
-        ERCStorage(tokenStorage).sendBUSD();
+        // ERCStorage(tokenStorage).sendBUSD();
 
         // is the token balance of this contract address over the min number of
         // tokens that we need to initiate a swap + liquidity lock?
